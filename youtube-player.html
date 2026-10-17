@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>YouTube most</title>
+<style>
+    html, body { margin: 0; background: transparent; overflow: hidden; }
+    #p { width: 200px; height: 200px; }
+</style>
+</head>
+<body>
+<div id="p"></div>
+
+<script>
+/* Ovu stranicu postavi na bilo koji HTTPS hosting (npr. GitHub Pages) i
+   njen link upiši u CONFIG.youtubeBridge u script.js.
+   Ona služi samo kao posrednik, da YouTube dobije normalan referrer. */
+var player = null, ready = false;
+
+function send(o) {
+    o.ytBridge = true;
+    parent.postMessage(o, '*');
+}
+
+function onYouTubeIframeAPIReady() {
+    player = new YT.Player('p', {
+        width: '200', height: '200',
+        playerVars: { autoplay: 0, controls: 0, playsinline: 1, rel: 0, disablekb: 1, iv_load_policy: 3 },
+        events: {
+            onReady: function () { ready = true; send({ type: 'ready' }); },
+            onStateChange: function (e) {
+                send({ type: 'state', state: e.data });
+                var d = player.getVideoData ? player.getVideoData() : {};
+                send({ type: 'meta', title: d.title, author: d.author });
+            },
+            onError: function (e) { send({ type: 'error', code: e.data }); }
+        }
+    });
+}
+
+window.addEventListener('message', function (e) {
+    if (e.source !== parent || !ready) return;
+    var m = e.data || {};
+    switch (m.cmd) {
+        case 'load':   player.loadVideoById(m.id); break;
+        case 'cue':    player.cueVideoById(m.id); break;
+        case 'play':   player.playVideo(); break;
+        case 'pause':  player.pauseVideo(); break;
+        case 'volume': player.setVolume(m.value); break;
+        case 'mute':   player.mute(); break;
+        case 'unmute': player.unMute(); break;
+        case 'seek':   player.seekTo(m.value, true); break;
+    }
+});
+
+setInterval(function () {
+    if (!ready) return;
+    send({
+        type: 'tick',
+        time: player.getCurrentTime(),
+        duration: player.getDuration(),
+        state: player.getPlayerState()
+    });
+}, 400);
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
