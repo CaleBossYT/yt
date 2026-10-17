@@ -5,11 +5,11 @@
 <title>YouTube pozadina</title>
 <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
-    /* Video popuni ceo ekran (cover) i malo je uvećan, da se YouTube natpisi/kontrole ne vide na ivicama */
+    /* Video je u svojoj punoj veličini i popunjava ceo ekran (bez dodatnog uvećavanja) */
     #p {
         position: absolute; top: 50%; left: 50%;
         width: max(100vw, 177.78vh); height: max(56.25vw, 100vh);
-        transform: translate(-50%, -50%) scale(1.18);
+        transform: translate(-50%, -50%);
         border: 0; pointer-events: none;
     }
 </style>
