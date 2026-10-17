@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>YouTube pozadina</title>
+<style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+    /* Video popuni ceo ekran (cover) i malo je uvećan, da se YouTube natpisi/kontrole ne vide na ivicama */
+    #p {
+        position: absolute; top: 50%; left: 50%;
+        width: max(100vw, 177.78vh); height: max(56.25vw, 100vh);
+        transform: translate(-50%, -50%) scale(1.18);
+        border: 0; pointer-events: none;
+    }
+</style>
+</head>
+<body>
+<div id="p"></div>
+
+<script>
+/* Postavi ovaj fajl na isti HTTPS hosting kao youtube-player.html (npr. GitHub Pages).
+   Loading screen ga učitava kao pozadinu: .../youtube-background.html?v=ID_VIDEA
+   Bez titlova, bez kontrola, bez zvuka, u petlji, u najvećem dostupnom kvalitetu. */
+var id = new URLSearchParams(location.search).get('v');
+var player = null;
+
+function tell(type, extra) {
+    var m = { ytBackground: true, type: type };
+    if (extra) for (var k in extra) m[k] = extra[k];
+    parent.postMessage(m, '*');
+}
+
+function bestQuality() {
+    try {
+        var q = player.getAvailableQualityLevels ? player.getAvailableQualityLevels() : [];
+        player.setPlaybackQuality(q && q.length ? q[0] : 'highres');
+    } catch (e) {}
+}
+
+function noCaptions() {
+    try { player.unloadModule('captions'); player.unloadModule('cc'); } catch (e) {}
+    try { player.setOption('captions', 'track', {}); } catch (e) {}
+}
+
+function onYouTubeIframeAPIReady() {
+    if (!id) return tell('error', { code: 'no-id' });
+    player = new YT.Player('p', {
+        width: '100%', height: '100%', videoId: id,
+        playerVars: {
+            autoplay: 1, mute: 1, controls: 0, loop: 1, playlist: id,
+            cc_load_policy: 0, cc_lang_pref: 'xx', hl: 'xx',
+            vq: 'highres', modestbranding: 1, rel: 0, playsinline: 1,
+            disablekb: 1, iv_load_policy: 3, fs: 0, color: 'white'
+        },
+        events: {
+            onReady: function (e) {
+                e.target.mute();
+                noCaptions();
+                bestQuality();
+                e.target.playVideo();
+            },
+            onStateChange: function (e) {
+                if (e.data === 1) { noCaptions(); bestQuality(); tell('playing'); }
+                if (e.data === 0) player.playVideo();   // petlja
+            },
+            onApiChange: noCaptions,
+            onError: function (e) { tell('error', { code: e.data }); }
+        }
+    });
+}
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
